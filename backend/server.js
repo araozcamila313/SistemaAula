@@ -3,7 +3,16 @@ require('dotenv').config();
 const path = require('node:path');
 const express = require('express');
 const { Pool } = require('pg');
-const { ValidationError, parsePositiveInteger, validateName, validateNote } = require('./validation');
+const {
+  ValidationError,
+  parsePositiveInteger,
+  parseSeatNumber,
+  validateAttendance,
+  validateDate,
+  validateName,
+  validateNote,
+  validateStudent,
+} = require('./validation');
 
 const app = express();
 const pool = new Pool({
@@ -14,6 +23,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 const publicDirectory = path.join(__dirname, '..', 'public');
+const seatingDirectory = path.join(__dirname, '..', 'frontend', 'asignacion_de_asientos');
 
 app.use(express.json({ limit: '100kb' }));
 
@@ -37,7 +47,7 @@ async function ensureSubjectExists(subjectId) {
 }
 
 app.get('/api/estudiantes', asyncRoute(async (_req, res) => {
-  const result = await pool.query('SELECT id, nombre FROM estudiantes ORDER BY nombre');
+  const result = await pool.query('SELECT id, nombre, matricula FROM estudiantes ORDER BY nombre');
   res.json(result.rows);
 }));
 
@@ -47,10 +57,10 @@ app.get('/api/materias', asyncRoute(async (_req, res) => {
 }));
 
 app.post('/api/estudiantes', asyncRoute(async (req, res) => {
-  const nombre = validateName(req.body, 'estudiante');
+  const { nombre, matricula } = validateStudent(req.body);
   const result = await pool.query(
-    'INSERT INTO estudiantes (nombre) VALUES ($1) RETURNING id, nombre',
-    [nombre]
+    'INSERT INTO estudiantes (nombre, matricula) VALUES ($1, $2) RETURNING id, nombre, matricula',
+    [nombre, matricula]
   );
   res.status(201).json(result.rows[0]);
 }));
@@ -144,10 +154,77 @@ app.delete('/api/apuntes/:id', asyncRoute(async (req, res) => {
   res.json({ id: result.rows[0].id });
 }));
 
+app.get('/api/asientos', asyncRoute(async (_req, res) => {
+  const result = await pool.query(
+    `SELECT a.asiento, e.id AS estudiante_id, e.nombre, e.matricula
+     FROM asignaciones_asientos a
+     JOIN estudiantes e ON e.id = a.estudiante_id
+     ORDER BY a.asiento`
+  );
+  res.json(result.rows);
+}));
+
+app.put('/api/asientos/:numero', asyncRoute(async (req, res) => {
+  const seatNumber = parseSeatNumber(req.params.numero);
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    throw new ValidationError('Los datos de asignación no son válidos');
+  }
+  const studentId = parsePositiveInteger(String(req.body.estudianteId ?? ''), 'El estudiante');
+
+  const result = await pool.query(
+    `INSERT INTO asignaciones_asientos (asiento, estudiante_id)
+     VALUES ($1, $2)
+     RETURNING asiento, estudiante_id`,
+    [seatNumber, studentId]
+  );
+  res.status(201).json(result.rows[0]);
+}));
+
+app.delete('/api/asientos/:numero', asyncRoute(async (req, res) => {
+  const seatNumber = parseSeatNumber(req.params.numero);
+  const result = await pool.query(
+    'DELETE FROM asignaciones_asientos WHERE asiento = $1 RETURNING asiento',
+    [seatNumber]
+  );
+  if (result.rowCount === 0) {
+    return res.status(404).json({ error: 'El asiento no está ocupado' });
+  }
+  res.json(result.rows[0]);
+}));
+
+app.get('/api/asistencia', asyncRoute(async (req, res) => {
+  const date = validateDate(req.query.fecha);
+  const result = await pool.query(
+    `SELECT e.id AS estudiante_id, e.nombre, e.matricula,
+            COALESCE(a.estado, 'Ausente') AS estado
+     FROM estudiantes e
+     LEFT JOIN asistencia a
+       ON a.estudiante_id = e.id AND a.fecha = $1
+     ORDER BY e.nombre`,
+    [date]
+  );
+  res.json(result.rows);
+}));
+
+app.put('/api/asistencia/:estudianteId', asyncRoute(async (req, res) => {
+  const studentId = parsePositiveInteger(req.params.estudianteId, 'El estudiante');
+  const attendance = validateAttendance(req.body);
+  const result = await pool.query(
+    `INSERT INTO asistencia (estudiante_id, fecha, estado)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (estudiante_id, fecha)
+     DO UPDATE SET estado = EXCLUDED.estado
+     RETURNING estudiante_id, fecha, estado`,
+    [studentId, attendance.fecha, attendance.estado]
+  );
+  res.json(result.rows[0]);
+}));
+
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Ruta de API no encontrada' });
 });
 
+app.use('/asignacion-de-asientos', express.static(seatingDirectory));
 app.use(express.static(publicDirectory));
 
 app.use((error, _req, res, _next) => {
@@ -155,7 +232,15 @@ app.use((error, _req, res, _next) => {
     return res.status(400).json({ error: error.message });
   }
   if (error.code === '23505') {
-    return res.status(409).json({ error: 'Ya existe un registro con ese nombre' });
+    const isSeatConflict = error.constraint?.startsWith('asignaciones_asientos_');
+    return res.status(409).json({
+      error: isSeatConflict
+        ? 'El asiento está ocupado o el estudiante ya tiene un asiento'
+        : 'Ya existe un registro con ese nombre o matrícula',
+    });
+  }
+  if (error.code === '23503') {
+    return res.status(404).json({ error: 'El estudiante no existe' });
   }
   if (error instanceof SyntaxError && 'body' in error) {
     return res.status(400).json({ error: 'El JSON de la solicitud no es válido' });

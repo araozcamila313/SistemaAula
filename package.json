@@ -7,7 +7,8 @@
     "dev": "node --watch-path=backend --watch-path=public backend/server.js",
     "start": "node backend/server.js",
     "db:setup": "node backend/setup-db.js",
-    "test": "node --test"
+    "test": "node --test tests/validation.test.js && jest pruebas.test.js --runInBand",
+    "test:seating": "jest pruebas.test.js --runInBand"
   },
   "keywords": [
     "aula",
