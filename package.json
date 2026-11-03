@@ -2,9 +2,12 @@
   "name": "sistema-aula",
   "version": "1.0.0",
   "description": "Proyecto de gestion de aula para apuntes y asignacion de asientos",
-  "main": "index.js",
+  "main": "backend/server.js",
   "scripts": {
-    "test": "jest"
+    "dev": "node --watch-path=backend --watch-path=public backend/server.js",
+    "start": "node backend/server.js",
+    "db:setup": "node backend/setup-db.js",
+    "test": "node --test"
   },
   "keywords": [
     "aula",
@@ -13,5 +16,15 @@
     "javascript"
   ],
   "author": "Camila y Ximena",
-  "license": "ISC"
-} 
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14"
+  }
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Apuntes</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="encabezado">
+    <h1>Mis Apuntes</h1>
+    <div class="selector-estudiante">
+      <label for="select-estudiante">Estudiante:</label>
+      <select id="select-estudiante"></select>
+      <button id="btn-nuevo-estudiante" type="button" class="btn btn-secundario">+ Estudiante</button>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="barra">
+      <h2>Lista de apuntes</h2>
+      <div class="acciones-barra">
+        <button id="btn-nueva-materia" type="button" class="btn btn-secundario">+ Materia</button>
+        <button id="btn-nuevo" class="btn btn-primario">+ Nuevo apunte</button>
+      </div>
+    </div>
+    <p id="mensaje-vacio" class="vacio" hidden>Aún no tienes apuntes. Crea el primero.</p>
+    <section id="lista-apuntes" class="lista"></section>
+  </main>
+
+  <dialog id="ventana-formulario" class="ventana">
+    <form id="formulario" novalidate>
+      <h3 id="titulo-formulario">Nuevo apunte</h3>
+
+      <label for="campo-titulo">Título</label>
+      <input type="text" id="campo-titulo" maxlength="150" required aria-describedby="error-formulario">
+
+      <label for="campo-materia">Materia</label>
+      <select id="campo-materia" required aria-describedby="error-formulario"></select>
+
+      <label for="campo-contenido">Contenido</label>
+      <textarea id="campo-contenido" rows="8" required aria-describedby="error-formulario"></textarea>
+
+      <p id="error-formulario" class="error" role="alert" hidden></p>
+
+      <div class="acciones">
+        <button type="button" id="btn-cancelar-form" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ventana-estudiante" class="ventana ventana-pequena">
+    <form id="formulario-estudiante" novalidate>
+      <h3>Agregar estudiante</h3>
+      <label for="campo-estudiante">Nombre del estudiante</label>
+      <input type="text" id="campo-estudiante" maxlength="120" autocomplete="name" required aria-describedby="error-estudiante">
+      <p id="error-estudiante" class="error" role="alert" hidden></p>
+      <div class="acciones">
+        <button type="button" id="btn-cancelar-estudiante" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar estudiante</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ventana-materia" class="ventana ventana-pequena">
+    <form id="formulario-materia" novalidate>
+      <h3>Agregar materia</h3>
+      <label for="campo-nueva-materia">Nombre de la materia</label>
+      <input type="text" id="campo-nueva-materia" maxlength="120" required aria-describedby="error-materia">
+      <p id="error-materia" class="error" role="alert" hidden></p>
+      <div class="acciones">
+        <button type="button" id="btn-cancelar-materia" class="btn btn-secundario">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar materia</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ventana-detalle" class="ventana">
+    <span id="detalle-materia" class="etiqueta"></span>
+    <h3 id="detalle-titulo"></h3>
+    <p id="detalle-contenido" class="contenido"></p>
+    <p class="fecha" id="detalle-fechas"></p>
+    <div class="acciones">
+      <button id="btn-detalle-eliminar" class="btn btn-peligro">Eliminar</button>
+      <button id="btn-detalle-editar" class="btn btn-secundario">Editar</button>
+      <button id="btn-detalle-cerrar" class="btn btn-primario">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="ventana-confirmar" class="ventana ventana-pequena">
+    <h3>Eliminar apunte</h3>
+    <p>¿Seguro que deseas eliminar este apunte? Esta acción no se puede deshacer.</p>
+    <div class="acciones">
+      <button id="btn-cancelar-eliminar" class="btn btn-secundario">Cancelar</button>
+      <button id="btn-confirmar-eliminar" class="btn btn-peligro">Sí, eliminar</button>
+    </div>
+  </dialog>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
